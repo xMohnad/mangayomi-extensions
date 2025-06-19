@@ -23,8 +23,9 @@ void genManga(List<Source> jsMangasourceList) {
   List<Source> mangaSources = [];
   mangaSources.addAll(dartMangasourceList);
   mangaSources.addAll(jsMangasourceList);
-  final List<Map<String, dynamic>> jsonList =
-      mangaSources.map((source) => source.toJson()).toList();
+  final List<Map<String, dynamic>> jsonList = mangaSources
+      .map((source) => source.toJson())
+      .toList();
   final jsonString = jsonEncode(jsonList);
 
   final file = File('index.json');
@@ -37,8 +38,9 @@ void genAnime(List<Source> jsAnimesourceList) {
   List<Source> animeSources = [];
   animeSources.addAll(dartAnimesourceList);
   animeSources.addAll(jsAnimesourceList);
-  final List<Map<String, dynamic>> jsonList =
-      animeSources.map((source) => source.toJson()).toList();
+  final List<Map<String, dynamic>> jsonList = animeSources
+      .map((source) => source.toJson())
+      .toList();
   final jsonString = jsonEncode(jsonList);
 
   final file = File('anime_index.json');
@@ -51,8 +53,9 @@ void genNovel(List<Source> jsNovelSourceList) {
   List<Source> novelSources = [];
   novelSources.addAll(dartNovelSourceList);
   novelSources.addAll(jsNovelSourceList);
-  final List<Map<String, dynamic>> jsonList =
-      novelSources.map((source) => source.toJson()).toList();
+  final List<Map<String, dynamic>> jsonList = novelSources
+      .map((source) => source.toJson())
+      .toList();
   final jsonString = jsonEncode(jsonList);
 
   final file = File('novel_index.json');
@@ -80,13 +83,12 @@ List<Source> _searchJsSources(Directory dir) {
           if (match != null) {
             for (var sourceJson in jsonDecode(match.group(1)!) as List) {
               final langs = sourceJson["langs"] as List?;
-              Source source =
-                  Source.fromJson(sourceJson)
-                    ..sourceCodeLanguage = 1
-                    ..appMinVerReq =
-                        sourceJson["appMinVerReq"] ?? defaultSource.appMinVerReq
-                    ..sourceCodeUrl =
-                        "https://raw.githubusercontent.com/kodjodevf/mangayomi-extensions/$branchName/javascript/${sourceJson["pkgPath"] ?? sourceJson["pkgName"]}";
+              Source source = Source.fromJson(sourceJson)
+                ..sourceCodeLanguage = 1
+                ..appMinVerReq =
+                    sourceJson["appMinVerReq"] ?? defaultSource.appMinVerReq
+                ..sourceCodeUrl =
+                    "https://raw.githubusercontent.com/xMohnad/mangayomi-extensions/novel/kolnovel_test/javascript/${sourceJson["pkgPath"] ?? sourceJson["pkgName"]}";
               if (sourceJson["id"] != null) {
                 source = source..id = int.tryParse("${sourceJson["id"]}");
               }
