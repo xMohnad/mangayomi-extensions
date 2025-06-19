@@ -67,8 +67,38 @@ class DefaultExtension extends MProvider {
   async search(query, page, filters) {
     throw new Error("search not implemented");
   }
+
+  toStatus(status) {
+    return (
+      {
+        مستمرة: 0,
+        مكتملة: 1,
+        متوقفة: 2,
+      }[status] ?? 5 // 5 => unknown
+    );
+  }
+
   async getDetail(url) {
-    throw new Error("getDetail not implemented");
+    const res = await new Client().get(url, this.headers);
+    const doc = new Document(res.body);
+    const info = doc.selectFirst("div.sertoinfo");
+
+    const name = info.selectFirst("h1.entry-title").text;
+    const description = info.selectFirst("div.sersys.entry-content p").text;
+    const genre = info.select("div.sertogenre a").map((el) => el.text);
+    const author = info.selectFirst(
+      ".sertoauth .serl:contains('الكاتب') .serval a",
+    ).text;
+    const status = this.toStatus(info.selectFirst("div.sertostat span").test);
+
+    return {
+      name,
+      description,
+      genre,
+      author,
+      status,
+      chapters: [],
+    };
   }
   // For novel html content
   async getHtmlContent(name, url) {
@@ -90,28 +120,45 @@ class DefaultExtension extends MProvider {
     throw new Error("getFilterList not implemented");
   }
 
-  getSanitizedUrl(prefKey) {
-    const preference = new SharedPreferences();
-    let url = preference.get(prefKey) || this.source.baseUrl;
-    return url.endsWith("/") ? url.slice(0, -1) : url;
-  }
-
   getActiveSiteUrl() {
-    return this.getSanitizedUrl("selected_site_url");
-  }
+    const preference = new SharedPreferences();
+    const selectedSiteKey =
+      preference.get("selected_site_key") || "kolnovel_custom_url";
+    let url;
+    if (selectedSiteKey === "kolnovel_custom_url") {
+      url = preference.get(selectedSiteKey) || this.source.baseUrl;
+    } else {
+      // kolbook_custom_url
+      url = preference.get(selectedSiteKey) || this.defaultKolBookUrl;
+    }
 
-  getKolNovelUrl() {
-    return this.getSanitizedUrl("kolnovel_custom_url");
-  }
-
-  getKolBookUrl() {
-    return this.getSanitizedUrl("kolbook_custom_url");
+    return url.endsWith("/") ? url.slice(0, -1) : url;
   }
 
   getSourcePreferences() {
     return [
       {
-        key: "selected_site_url",
+        key: "kolnovel_custom_url",
+        editTextPreference: {
+          title: "-تعديل الرابط -الرئيسي",
+          summary: "",
+          value: this.source.baseUrl,
+          dialogTitle: "تعديل",
+          dialogMessage: `Defaul URL ${this.source.baseUrl}`,
+        },
+      },
+      {
+        key: "kolbook_custom_url",
+        editTextPreference: {
+          title: "-تعديل الرابط -المجاني",
+          summary: "",
+          value: this.defaultKolBookUrl,
+          dialogTitle: "تعديل",
+          dialogMessage: `Defaul URL ${this.defaultKolBookUrl}`,
+        },
+      },
+      {
+        key: "selected_site_key",
         listPreference: {
           title: "أختر المصدر.",
           summary: "",
@@ -120,27 +167,7 @@ class DefaultExtension extends MProvider {
             "المصدر الرسمي (قد يتطلب اشتراك)",
             "المصدر المجانية (بدون اشتراك)",
           ],
-          entryValues: [this.getKolNovelUrl(), this.getKolBookUrl()],
-        },
-      },
-      {
-        key: "kolnovel_custom_url",
-        editTextPreference: {
-          title: "المصدر الرئيسي",
-          summary: "يوفر كافة الفصول، لكن بعض المحتوى يتطلب اشتراكًا.",
-          value: this.source.baseUrl,
-          dialogTitle: "URL",
-          dialogMessage: "",
-        },
-      },
-      {
-        key: "kolbook_custom_url",
-        editTextPreference: {
-          title: "المصدر المجاني",
-          summary: "لا يتطلب اشتراكًا، ولكن قد لا بحتوي على كافة الفصول.",
-          value: this.defaultKolBookUrl,
-          dialogTitle: "URL",
-          dialogMessage: "",
+          entryValues: ["kolnovel_custom_url", "kolbook_custom_url"],
         },
       },
     ];
