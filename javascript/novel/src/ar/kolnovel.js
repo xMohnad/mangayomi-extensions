@@ -14,8 +14,6 @@ const mangayomiSources = [{
 
 class DefaultExtension extends MProvider {
   headers = {
-    Referer: this.getActiveSiteUrl(),
-    Origin: this.getActiveSiteUrl(),
     "Sec-Fetch-Mode": "cors",
     "Accept-Encoding": "gzip, deflate",
     "User-Agent":
