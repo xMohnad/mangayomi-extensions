@@ -111,6 +111,19 @@ class DefaultExtension extends MProvider {
   getSourcePreferences() {
     return [
       {
+        key: "selected_site_url",
+        listPreference: {
+          title: "أختر المصدر.",
+          summary: "",
+          valueIndex: 0,
+          entries: [
+            "المصدر الرسمي (قد يتطلب اشتراك)",
+            "المصدر المجانية (بدون اشتراك)",
+          ],
+          entryValues: [this.getKolNovelUrl(), this.getKolBookUrl()],
+        },
+      },
+      {
         key: "kolnovel_custom_url",
         editTextPreference: {
           title: "المصدر الرئيسي",
@@ -128,19 +141,6 @@ class DefaultExtension extends MProvider {
           value: this.defaultKolBookUrl,
           dialogTitle: "URL",
           dialogMessage: "",
-        },
-      },
-      {
-        key: "selected_site_url",
-        listPreference: {
-          title: "أختر المصدر.",
-          summary: "",
-          valueIndex: 0,
-          entries: [
-            "المصدر الرسمي (قد يتطلب اشتراك)",
-            "المصدر المجانية (بدون اشتراك)",
-          ],
-          entryValues: [this.getKolNovelUrl(), this.getKolBookUrl()],
         },
       },
     ];
