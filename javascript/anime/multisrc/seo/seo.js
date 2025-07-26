@@ -1,4 +1,22 @@
 class DefaultExtension extends MProvider {
+  toStatus(status) {
+    if (!status) return 5; // unknown
+
+    const normalized = status.trim().toLowerCase();
+    const keywordsMap = [
+      { keywords: ["يعرض الان"], value: 0 },
+      { keywords: ["مكتمل"], value: 1 },
+    ];
+
+    for (const { keywords, value } of keywordsMap) {
+      if (keywords.some((k) => normalized.includes(k))) {
+        return value;
+      }
+    }
+
+    return 5;
+  }
+
   getHeaders(url) {
     throw new Error("getHeaders not implemented");
   }
@@ -33,8 +51,96 @@ class DefaultExtension extends MProvider {
     throw new Error("search not implemented");
   }
 
+  //  Chapters
+  chapterFromJson(entry) {
+    return {
+      name: `${entry.type} ${entry.number}`,
+      url: entry.url,
+    };
+  }
+
+  atob_polyfill(input) {
+    const chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    let str = String(input).replace(/=+$/, "");
+    let output = "";
+
+    if (str.length % 4 === 1) {
+      throw new Error(
+        "'atob' failed: The string to be decoded is not correctly encoded.",
+      );
+    }
+
+    let bc = 0,
+      bs,
+      buffer,
+      idx = 0;
+
+    for (
+      ;
+      (buffer = str.charAt(idx++));
+      ~buffer && ((bs = bc % 4 ? bs * 64 + buffer : buffer), bc++ % 4)
+        ? (output += String.fromCharCode(255 & (bs >> ((-2 * bc) & 6))))
+        : 0
+    ) {
+      buffer = chars.indexOf(buffer);
+    }
+
+    return output;
+  }
+
+  decodeProcessedEpisodeData(encoded) {
+    const [part1_b64, part2_b64] = encoded.split(".");
+    const part1 = this.atob_polyfill(part1_b64);
+    const part2 = this.atob_polyfill(part2_b64);
+
+    let result = "";
+    for (let i = 0; i < part1.length; i++) {
+      const c1 = part1.charCodeAt(i);
+      const c2 = part2.charCodeAt(i % part2.length);
+      result += String.fromCharCode(c1 ^ c2);
+    }
+
+    return JSON.parse(result);
+  }
+
   async getDetail(url) {
-    throw new Error("getDetail not implemented");
+    const res = await new Client().get(url);
+    const doc = new Document(res.body);
+
+    const imageUrl = doc.selectFirst("img.thumbnail")?.getSrc;
+    const details = doc.selectFirst("div.anime-details");
+
+    const title = details.selectFirst("h1")?.text.trim();
+    const genre = details.select("ul.anime-genres a").map((e) => e.text.trim());
+    const description = [
+      details.selectFirst("p.anime-story")?.text.trim(),
+      "",
+      ...details.select("div.anime-info").map((el) => {
+        const label = el.selectFirst("span")?.text.trim();
+        const value = el.text.replace(label, "").trim();
+        return `• ${label} ${value}`;
+      }),
+    ].join("\n");
+
+    const status = this.toStatus(
+      details.selectFirst("div.anime-info:contains(حالة الأنمي)")?.text,
+    );
+
+    const chapters = this.decodeProcessedEpisodeData(
+      doc
+        .selectFirst("script:contains('processedEpisodeData')")
+        ?.text?.match(/processedEpisodeData\s*=\s*'([^']+)'/)[1],
+    )?.map((entry) => this.chapterFromJson(entry));
+
+    return {
+      title,
+      imageUrl,
+      description,
+      genre,
+      status,
+      chapters,
+    };
   }
 
   // For novel html content
