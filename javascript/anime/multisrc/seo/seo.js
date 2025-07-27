@@ -51,14 +51,6 @@ class DefaultExtension extends MProvider {
     throw new Error("search not implemented");
   }
 
-  //  Chapters
-  chapterFromJson(entry) {
-    return {
-      name: `${entry.type} ${entry.number}`,
-      url: entry.url,
-    };
-  }
-
   atob_polyfill(input) {
     const chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
@@ -127,11 +119,24 @@ class DefaultExtension extends MProvider {
       details.selectFirst("div.anime-info:contains(حالة الأنمي)")?.text,
     );
 
-    const chapters = this.decodeProcessedEpisodeData(
+    const scriptData =
       doc
         .selectFirst("script:contains('processedEpisodeData')")
-        ?.text?.match(/processedEpisodeData\s*=\s*'([^']+)'/)[1],
-    )?.map((entry) => this.chapterFromJson(entry));
+        ?.text()
+        ?.match(/processedEpisodeData\s*=\s*'([^']+)'/)?.[1] ?? null;
+
+    let chapters;
+    if (scriptData === null) {
+      chapters = doc.select("div.episodes-card-title h3 a")?.map((el) => ({
+        name: el?.text,
+        url: el?.getHref,
+      }));
+    } else {
+      chapters = this.decodeProcessedEpisodeData(scriptData)?.map((entry) => ({
+        name: `${entry.type} ${entry.number}`,
+        url: entry.url,
+      }));
+    }
 
     return {
       title,
@@ -159,6 +164,7 @@ class DefaultExtension extends MProvider {
   async getPageList(url) {
     throw new Error("getPageList not implemented");
   }
+
   getFilterList() {
     throw new Error("getFilterList not implemented");
   }
